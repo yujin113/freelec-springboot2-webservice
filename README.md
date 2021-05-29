@@ -47,44 +47,39 @@ View Resolver : URL 요청의 결과를 전달할 타입과 값을 지정하는 
 <br /><br />
 
 ## OAuth 2.0으로 로그인 기능 구현
-스프링 부트에서는 properties의 이름을 application-xxx.properties로 만들면 xxx라는 이름의 profile이 생성
-
+스프링 부트에서는 properties의 이름을 application-xxx.properties로 만들면 xxx라는 이름의 profile이 생성    
 → profile=xxx 로 호출하면 해당 properties의 설정들을 가져올 수 있음
-
 1. User 클래스 생성
-2. 각 사용자 권한을 관리할 Enum 클래스인 Role을 생성
-
+2. 각 사용자 권한을 관리할 Enum 클래스인 Role을 생성   
    → Spring Security에서는 권한 코드에 항상 ROLE_이 앞에 있어야만 함
 
 3. User의 CRUD를 책임질 UserRepository도 생성
 4. 스프링 시큐리티 설정
-
     1) build.gradle에 의존성 추가
-
     2) SecurityConfig 클래스 생성
-
-    3) CustomOAuth2UserService 클래스 생성
-
+    3) CustomOAuth2UserService 클래스 생성   
         : 구글 로그인 이후 가져온 사용자의 정보들을 기반으로 가입 및 정보 수정, 세션 저장 등의 기능 지원
-
     4) Dto인 OAuthAttributes 클래스를 생성
-
-    5) Dto인 SessionUser 클래스 생성
-
-        : 세션에 사용자 정보 저장하기 위한 클래스
-
-       : User 클래스 사용하면 안됨
-
-        → User 클래스에 직렬화를 구현하지 않았다는 에러가 뜸
-
-        → User 클래스가 엔티티이기 때문에 언제 다른 엔티티와 관계가 형성될지 모름
-
-        → 자식 엔티티를 갖고 있다면 직렬화 대상에 자식들까지 포함되어 성능 이슈, 부수 효과가 발생
-
-        → 그래서 직렬화 기능을 가진 Session Dto를 추가로 만드는 것     
-5. 어노테이션 기반으로 개선
-
-    httpSession.getAttribute("user")로 세션값을 가져오는 부분 → 메소드 인자로 세션값을 바로 받을 수 있도록 변경
-
-    어느 컨트롤러든지 @LoginUser만 사용하면 세션 정보를 가져올 수 있게 함    
-
+    5) Dto인 SessionUser 클래스 생성     
+       : 세션에 사용자 정보 저장하기 위한 클래스   
+       : User 클래스 사용하면 안됨    
+        → User 클래스에 직렬화를 구현하지 않았다는 에러가 뜸   
+        → User 클래스가 엔티티이기 때문에 언제 다른 엔티티와 관계가 형성될지 모름   
+        → 자식 엔티티를 갖고 있다면 직렬화 대상에 자식들까지 포함되어 성능 이슈, 부수 효과가 발생   
+        → 그래서 직렬화 기능을 가진 Session Dto를 추가로 만드는 것
+5. 어노테이션 기반으로 개선   
+    httpSession.getAttribute("user")로 세션값을 가져오는 부분 → 메소드 인자로 세션값을 바로 받을 수 있도록 변경   
+    어느 컨트롤러든지 @LoginUser만 사용하면 세션 정보를 가져올 수 있게 함
+    
+6. 세션 저장소로 데이터베이스 사용하기  
+    세션이 내장 톰캣의 메모리에 저장되기 때문에 애플리케이션 실행 시 초기화됨
+   
+    1) 톰캣 세션 사용   
+        톰캣에 세션이 저장되므로 2대 이상의 WAS가 구동되는 환경에서는 톰캣들 간의 세션 공유를 위한 추가 설정 필요
+    2) MySQL 같은 데이터베이스를 세션 저장소로 사용   
+        여러 WAS 간의 공용 세션 사용할 수 있는 가장 쉬운 방법   
+       로그인 요청마다 DB IO가 발생하여 성능상 이슈가 발생할 수 있음 → 로그인 요청 많이 없는 백오피스, 사내 시스템 용도에서 사용
+    3) Redis, Memcached와 같은 메모리 DB를 세션 저장소로 사용  
+        B2C 서비스에서 가장 많이 사용하는 방식  
+    
+    → 두 번째 방식 선택! 설정이 간단하고 비용 절감을 위해
